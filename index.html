@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ratu Ngemil App</title>
+<title>Ratu Ngemil POS</title>
 <link rel="icon" href="logo.jpg">
 <link rel="apple-touch-icon" href="logo.jpg">
 <meta name="theme-color" content="#FCB001">
@@ -41,7 +41,7 @@ input:focus,select:focus,button:focus-visible{outline:3px solid var(--y)}
 .tile span{display:block;font-size:12px;font-weight:700;line-height:1.2}
 .tile small{color:var(--g);font-weight:700}
 .li{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--ln)}
-.li span{flex:1}.li button{width:40px;height:40px;border:0;border-radius:10px;background:var(--soft);font-size:16px}
+.li button{width:40px;height:40px;border:0;border-radius:10px;background:var(--soft);font:700 20px inherit;flex:none}.li .pl{background:var(--g);color:#fff}.q{display:flex;align-items:center}.q b{min-width:30px;text-align:center}
 .tot{display:flex;justify-content:space-between;font-size:20px;font-weight:800;padding:8px 0}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .kpi{background:var(--soft);border-radius:var(--r);padding:12px}
@@ -102,9 +102,8 @@ const total=()=>cart.reduce((s,i)=>s+i.qty*i.price,0);
 function txTable(l,act){return l.length?`<div class=tw><table><tr><th>${act?'Waktu':'Jam'}<th>Rincian<th>Jenis<th>Total${act&&role=='kasir'?'<th>Aksi':''}</tr>${l.map(t=>`<tr><td>${act?fmt(t.ts):new Date(t.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}<td>${t.items.map(i=>`${i.qty}× ${esc(i.name)}`).join(', ')}<td>${t.type}<td>${rp(t.total)}${act&&role=='kasir'?`<td><button class="btn sm sec" onclick=wa(${t.id})>Struk</button> <button class="btn sm sec" onclick=edt(${t.id})>Edit</button> <button class="btn sm red" onclick=dlt(${t.id})>Hapus</button>`:''}</tr>`).join('')}</table></div>`:'<p class=mu>Belum ada transaksi.</p>'}
 function kasir(){const tt=T.filter(t=>day(t.ts)==today()).sort((a,b)=>b.ts-a.ts);
 return `<div class=card><h3>Input Penjualan</h3><div id=tiles></div>
-<label>Nama produk</label><input id=pn oninput=pick() placeholder="Cari atau ketik nama produk" autocomplete=off>
-<div class=row><div><label>Jumlah</label><input id=pq type=number inputmode=numeric min=1 value=1></div><div><label>Harga satuan</label><input id=pp readonly placeholder="Rp0"></div></div>
-<button class="btn sec" onclick=add()>+ Tambah ke pesanan</button></div>
+<label>Nama produk</label><input id=pn oninput=pick() placeholder="Cari atau ketik nama produk" autocomplete=off onkeydown="if(event.key=='Enter')enter()">
+</div>
 <div class=card><h3>Pesanan</h3><div id=cart></div>
 <label>Jenis transaksi</label><div class=chips>${['REGULER','GRAB','SHOPEE'].map(x=>`<button class="${x==type?'on':''}" onclick="setType('${x}')">${x}</button>`).join('')}</div>
 <label>Jumlah bayar</label><input id=pay type=number inputmode=numeric oninput=calc() placeholder="0">
@@ -116,12 +115,13 @@ function matches(){const s=($('#pn').value||'').trim().toLowerCase();return s?P.
 function drawTiles(){const s=($('#pn').value||'').trim(),q=qty(T.filter(t=>t.ts>=Date.now()-30*864e5));if(!P.length){$('#tiles').innerHTML='<p class=mu>Master Data masih kosong. Tambahkan produk dulu di tab Master Data.</p>';return}
 const l=s?matches():[...P].sort((a,b)=>(q[b.name]||0)-(q[a.name]||0)).slice(0,3);
 $('#tiles').innerHTML=l.length?`<div class=tiles>${l.map(p=>`<button class=tile onclick="quick(${p.id})">${im(p)}<span>${esc(p.name)}</span><small>${rp(p.price)}</small></button>`).join('')}</div>`+(!s&&P.length>l.length?`<p class=mu>Menampilkan ${l.length} produk terlaris. Ketik nama untuk mencari produk lain.</p>`:''):'<p class=mu>Produk tidak ditemukan.</p>'}
-function pick(){const p=find($('#pn').value)||(m=>m.length==1?m[0]:0)(matches());$('#pp').value=p?rp(p.price):'';drawTiles()}
+function pick(){drawTiles()}
+function enter(){const m=matches();if(m.length==1)quick(m[0].id)}
 function push(p,q){const c=cart.find(i=>i.name==p.name);c?c.qty+=q:cart.push({name:p.name,price:p.price,qty:q});drawCart()}
-function add(){const p=find($('#pn').value)||(m=>m.length==1?m[0]:0)(matches());if(!p)return alert('Produk belum ada di Master Data.');push(p,Math.max(1,+$('#pq').value||1));$('#pn').value='';$('#pq').value=1;$('#pp').value='';drawTiles()}
-function quick(id){push(P.find(p=>p.id==id),1);$('#pn').value='';$('#pp').value='';drawTiles()}
-function drawCart(){$('#cart').innerHTML=cart.length?cart.map((i,k)=>`<div class=li><span>${i.qty}× ${esc(i.name)}</span><b>${rp(i.qty*i.price)}</b><button onclick=del(${k})>✕</button></div>`).join('')+`<div class=tot><span>Total</span><span>${rp(total())}</span></div>`:'<p class=mu>Belum ada item. Pilih produk di atas.</p>';calc()}
+function quick(id){push(P.find(p=>p.id==id),1);$('#pn').value='';drawTiles()}
+function drawCart(){$('#cart').innerHTML=cart.length?cart.map((i,k)=>`<div class=li><div style="flex:1;min-width:0"><div style="font-weight:600;line-height:1.2">${esc(i.name)}</div><small class=mu>${rp(i.qty*i.price)}</small></div><div class=q><button onclick=chg(${k},-1)>−</button><b>${i.qty}</b><button class=pl onclick=chg(${k},1)>+</button></div><button onclick=del(${k})>✕</button></div>`).join('')+`<div class=tot><span>Total</span><span>${rp(total())}</span></div>`:'<p class=mu>Belum ada item. Pilih produk di atas.</p>';calc()}
 function del(k){cart.splice(k,1);drawCart()}
+function chg(k,d){cart[k].qty=Math.max(1,cart[k].qty+d);drawCart()}
 function calc(){const d=(+$('#pay').value||0)-total();$('#chg').value=d>=0?rp(d):'Kurang '+rp(-d)}
 async function bayar(){if(busy)return;if(!cart.length)return alert('Pesanan masih kosong.');const t=total();let p=+$('#pay').value;if(type!='REGULER'&&!p)p=t;if(p<t)return alert('Jumlah bayar kurang.');const tx={id:Date.now(),ts:Date.now(),type,items:cart,total:t,paid:p,change:p-t};busy=1;try{await api('puttx',{tx})}catch(e){busy=0;return alert('Gagal menyimpan. Cek koneksi internet.')}busy=0;T.push(tx);cart=[];render();ask(tx.id)}
 
