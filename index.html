@@ -114,7 +114,7 @@ function setType(x){type=x;document.querySelectorAll('.chips button').forEach(b=
 const find=n=>P.find(p=>p.name.toLowerCase()==String(n).trim().toLowerCase());
 function matches(){const s=($('#pn').value||'').trim().toLowerCase();return s?P.filter(p=>p.name.toLowerCase().includes(s)):[]}
 function drawTiles(){const s=($('#pn').value||'').trim(),q=qty(T.filter(t=>t.ts>=Date.now()-30*864e5));if(!P.length){$('#tiles').innerHTML='<p class=mu>Master Data masih kosong. Tambahkan produk dulu di tab Master Data.</p>';return}
-const l=s?matches():[...P].sort((a,b)=>(q[b.name]||0)-(q[a.name]||0)).slice(0,8);
+const l=s?matches():[...P].sort((a,b)=>(q[b.name]||0)-(q[a.name]||0)).slice(0,3);
 $('#tiles').innerHTML=l.length?`<div class=tiles>${l.map(p=>`<button class=tile onclick="quick(${p.id})">${im(p)}<span>${esc(p.name)}</span><small>${rp(p.price)}</small></button>`).join('')}</div>`+(!s&&P.length>l.length?`<p class=mu>Menampilkan ${l.length} produk terlaris. Ketik nama untuk mencari produk lain.</p>`:''):'<p class=mu>Produk tidak ditemukan.</p>'}
 function pick(){const p=find($('#pn').value)||(m=>m.length==1?m[0]:0)(matches());$('#pp').value=p?rp(p.price):'';drawTiles()}
 function push(p,q){const c=cart.find(i=>i.name==p.name);c?c.qty+=q:cart.push({name:p.name,price:p.price,qty:q});drawCart()}
