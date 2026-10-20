@@ -101,8 +101,8 @@ function send(id){let n=$('#wn').value.replace(/\D/g,'');if(n[0]=='0')n='62'+n.s
 const total=()=>cart.reduce((s,i)=>s+i.qty*i.price,0);
 function txTable(l,act){return l.length?`<div class=tw><table><tr><th>${act?'Waktu':'Jam'}<th>Rincian<th>Jenis<th>Total${act&&role=='kasir'?'<th>Aksi':''}</tr>${l.map(t=>`<tr><td>${act?fmt(t.ts):new Date(t.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}<td>${t.items.map(i=>`${i.qty}× ${esc(i.name)}`).join(', ')}<td>${t.type}<td>${rp(t.total)}${act&&role=='kasir'?`<td><button class="btn sm sec" onclick=wa(${t.id})>Struk</button> <button class="btn sm sec" onclick=edt(${t.id})>Edit</button> <button class="btn sm red" onclick=dlt(${t.id})>Hapus</button>`:''}</tr>`).join('')}</table></div>`:'<p class=mu>Belum ada transaksi.</p>'}
 function kasir(){const tt=T.filter(t=>day(t.ts)==today()).sort((a,b)=>b.ts-a.ts);
-return `<div class=card><h3>Input Penjualan</h3>${P.length?`<div class=tiles>${P.map(p=>`<button class=tile onclick="quick(${p.id})">${im(p)}<span>${esc(p.name)}</span><small>${rp(p.price)}</small></button>`).join('')}</div>`:'<p class=mu>Master Data masih kosong. Tambahkan produk dulu di tab Master Data.</p>'}
-<label>Nama produk</label><input id=pn list=pl oninput=pick() placeholder="Ketik nama produk" autocomplete=off><datalist id=pl>${P.map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist>
+return `<div class=card><h3>Input Penjualan</h3><div id=tiles></div>
+<label>Nama produk</label><input id=pn oninput=pick() placeholder="Cari atau ketik nama produk" autocomplete=off>
 <div class=row><div><label>Jumlah</label><input id=pq type=number inputmode=numeric min=1 value=1></div><div><label>Harga satuan</label><input id=pp readonly placeholder="Rp0"></div></div>
 <button class="btn sec" onclick=add()>+ Tambah ke pesanan</button></div>
 <div class=card><h3>Pesanan</h3><div id=cart></div>
@@ -112,10 +112,14 @@ return `<div class=card><h3>Input Penjualan</h3>${P.length?`<div class=tiles>${P
 <div class=card><h3>Transaksi Hari Ini</h3>${txTable(tt,0)}</div>`}
 function setType(x){type=x;document.querySelectorAll('.chips button').forEach(b=>b.classList.toggle('on',b.textContent==x))}
 const find=n=>P.find(p=>p.name.toLowerCase()==String(n).trim().toLowerCase());
-function pick(){const p=find($('#pn').value);$('#pp').value=p?rp(p.price):''}
+function matches(){const s=($('#pn').value||'').trim().toLowerCase();return s?P.filter(p=>p.name.toLowerCase().includes(s)):[]}
+function drawTiles(){const s=($('#pn').value||'').trim(),q=qty(T.filter(t=>t.ts>=Date.now()-30*864e5));if(!P.length){$('#tiles').innerHTML='<p class=mu>Master Data masih kosong. Tambahkan produk dulu di tab Master Data.</p>';return}
+const l=s?matches():[...P].sort((a,b)=>(q[b.name]||0)-(q[a.name]||0)).slice(0,8);
+$('#tiles').innerHTML=l.length?`<div class=tiles>${l.map(p=>`<button class=tile onclick="quick(${p.id})">${im(p)}<span>${esc(p.name)}</span><small>${rp(p.price)}</small></button>`).join('')}</div>`+(!s&&P.length>l.length?`<p class=mu>Menampilkan ${l.length} produk terlaris. Ketik nama untuk mencari produk lain.</p>`:''):'<p class=mu>Produk tidak ditemukan.</p>'}
+function pick(){const p=find($('#pn').value)||(m=>m.length==1?m[0]:0)(matches());$('#pp').value=p?rp(p.price):'';drawTiles()}
 function push(p,q){const c=cart.find(i=>i.name==p.name);c?c.qty+=q:cart.push({name:p.name,price:p.price,qty:q});drawCart()}
-function add(){const p=find($('#pn').value);if(!p)return alert('Produk belum ada di Master Data.');push(p,Math.max(1,+$('#pq').value||1));$('#pn').value='';$('#pq').value=1;$('#pp').value=''}
-function quick(id){push(P.find(p=>p.id==id),1)}
+function add(){const p=find($('#pn').value)||(m=>m.length==1?m[0]:0)(matches());if(!p)return alert('Produk belum ada di Master Data.');push(p,Math.max(1,+$('#pq').value||1));$('#pn').value='';$('#pq').value=1;$('#pp').value='';drawTiles()}
+function quick(id){push(P.find(p=>p.id==id),1);$('#pn').value='';$('#pp').value='';drawTiles()}
 function drawCart(){$('#cart').innerHTML=cart.length?cart.map((i,k)=>`<div class=li><span>${i.qty}× ${esc(i.name)}</span><b>${rp(i.qty*i.price)}</b><button onclick=del(${k})>✕</button></div>`).join('')+`<div class=tot><span>Total</span><span>${rp(total())}</span></div>`:'<p class=mu>Belum ada item. Pilih produk di atas.</p>';calc()}
 function del(k){cart.splice(k,1);drawCart()}
 function calc(){const d=(+$('#pay').value||0)-total();$('#chg').value=d>=0?rp(d):'Kurang '+rp(-d)}
@@ -163,7 +167,7 @@ function dP(id){if(confirm('Hapus produk ini? Riwayat transaksi lama tidak berub
 /* ---------- APP ---------- */
 const pages={kasir,dashboard:dash,riwayat:riw,summary:summ,master:mast},tabs=[['kasir','🧾','KASIR'],['dashboard','📊','Dashboard'],['riwayat','🕘','Riwayat'],['summary','💡','Summary'],['master','📦','Master Data']];
 function go(p){page=p;render();scrollTo(0,0)}
-function render(){$('#v').innerHTML=pages[page]();$('#nv').innerHTML=tabs.filter(t=>role=='kasir'||!['kasir','master'].includes(t[0])).map(t=>`<button class="${t[0]==page?'on':''}" onclick="go('${t[0]}')"><i>${t[1]}</i>${t[2]}</button>`).join('');if(page=='kasir')drawCart()}
+function render(){$('#v').innerHTML=pages[page]();$('#nv').innerHTML=tabs.filter(t=>role=='kasir'||!['kasir','master'].includes(t[0])).map(t=>`<button class="${t[0]==page?'on':''}" onclick="go('${t[0]}')"><i>${t[1]}</i>${t[2]}</button>`).join('');if(page=='kasir'){drawCart();drawTiles()}}
 $('#m').addEventListener('click',e=>{if(e.target.id=='m')cm()});
 const api=async(a,b={})=>{const r=await fetch('/api/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({a,pin:localStorage.getItem('rn_pin'),...b})});if(r.status==401){const e=new Error('401');e.auth=1;throw e}if(!r.ok){const t=await r.text();throw new Error(r.status+' '+t.slice(0,150))}return r.json()};
 function loginUI(m=''){$('#nv').innerHTML='';$('#v').innerHTML=`<div class=card><h3>Masuk</h3><p class=mu>${m}</p><label>PIN</label><input id=pin type=password inputmode=numeric autocomplete=current-password><button class=btn onclick=login()>Masuk</button></div>`}
