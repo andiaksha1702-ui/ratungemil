@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ratu Ngemil Apps</title>
+<title>Ratu Ngemil POS</title>
 <link rel="icon" href="logo.jpg">
 <link rel="apple-touch-icon" href="logo.jpg">
 <meta name="theme-color" content="#FCB001">
@@ -67,7 +67,7 @@ th{background:var(--y);text-align:left}td,th{padding:8px;border-bottom:1px solid
 </style>
 </head>
 <body>
-<header><img src="logo.jpg" alt="Ratu Ngemil"><b>RATU NGEMIL ID</b></header>
+<header><img src="logo.jpg" alt="Ratu Ngemil"><b>RATU NGEMIL POS</b></header>
 <main id="v"></main>
 <nav id="nv"></nav>
 <div id="m"></div>
@@ -119,9 +119,9 @@ function pick(){drawTiles()}
 function enter(){const m=matches();if(m.length==1)quick(m[0].id)}
 function push(p,q){const c=cart.find(i=>i.name==p.name);c?c.qty+=q:cart.push({name:p.name,price:p.price,qty:q});drawCart()}
 function quick(id){push(P.find(p=>p.id==id),1);$('#pn').value='';drawTiles()}
-function drawCart(){$('#cart').innerHTML=cart.length?cart.map((i,k)=>`<div class=li><div style="flex:1;min-width:0"><div style="font-weight:600;line-height:1.2">${esc(i.name)}</div><small class=mu>${rp(i.qty*i.price)}</small></div><div class=q><button onclick=chg(${k},-1)>−</button><b>${i.qty}</b><button class=pl onclick=chg(${k},1)>+</button></div><button onclick=del(${k})>✕</button></div>`).join('')+`<div class=tot><span>Total</span><span>${rp(total())}</span></div>`:'<p class=mu>Belum ada item. Pilih produk di atas.</p>';calc()}
+function drawCart(){$('#cart').innerHTML=cart.length?cart.map((i,k)=>`<div class=li><div style="flex:1;min-width:0"><div style="font-weight:600;line-height:1.2">${esc(i.name)}</div><small class=mu>${rp(i.qty*i.price)}</small></div><div class=q><button onclick=chg(${k},-1)>−</button><b>${i.qty}</b><button class=pl onclick=chg(${k},1)>+</button></div></div>`).join('')+`<div class=tot><span>Total</span><span>${rp(total())}</span></div>`:'<p class=mu>Belum ada item. Pilih produk di atas.</p>';calc()}
 function del(k){cart.splice(k,1);drawCart()}
-function chg(k,d){cart[k].qty=Math.max(1,cart[k].qty+d);drawCart()}
+function chg(k,d){cart[k].qty+=d;if(cart[k].qty<1)cart.splice(k,1);drawCart()}
 function calc(){const d=(+$('#pay').value||0)-total();$('#chg').value=d>=0?rp(d):'Kurang '+rp(-d)}
 async function bayar(){if(busy)return;if(!cart.length)return alert('Pesanan masih kosong.');const t=total();let p=+$('#pay').value;if(type!='REGULER'&&!p)p=t;if(p<t)return alert('Jumlah bayar kurang.');const tx={id:Date.now(),ts:Date.now(),type,items:cart,total:t,paid:p,change:p-t};busy=1;try{await api('puttx',{tx})}catch(e){busy=0;return alert('Gagal menyimpan. Cek koneksi internet.')}busy=0;T.push(tx);cart=[];render();ask(tx.id)}
 
