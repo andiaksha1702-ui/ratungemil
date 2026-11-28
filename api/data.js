@@ -7,13 +7,19 @@ export default async function handler(req,res){
     const sql=neon(process.env.DATABASE_URL);
     await sql`create table if not exists kv(k text primary key,v jsonb)`;
     await sql`create table if not exists tx(id bigint primary key,d jsonb)`;
+    await sql`create table if not exists ex(id bigint primary key,d jsonb)`;
     if(b.a==='load'){
       const p=await sql`select v from kv where k='p'`;
       const t=await sql`select d from tx order by id`;
-      return res.json({role,p:p[0]?p[0].v:[],t:t.map(r=>r.d)});
+      const bb=await sql`select v from kv where k='b'`;
+      const x=await sql`select d from ex order by id`;
+      return res.json({role,p:p[0]?p[0].v:[],t:t.map(r=>r.d),b:bb[0]?bb[0].v:[],x:x.map(r=>r.d)});
     }
     if(b.a==='putp')await sql`insert into kv values('p',${JSON.stringify(b.p||[])}::jsonb) on conflict (k) do update set v=excluded.v`;
     else if(b.a==='puttx')await sql`insert into tx values(${b.tx.id},${JSON.stringify(b.tx)}::jsonb) on conflict (id) do update set d=excluded.d`;
+    else if(b.a==='putb')await sql`insert into kv values('b',${JSON.stringify(b.b||[])}::jsonb) on conflict (k) do update set v=excluded.v`;
+    else if(b.a==='putxs')await sql`insert into ex select (v->>'id')::bigint,v from jsonb_array_elements(${JSON.stringify(b.xs||[])}::jsonb) v on conflict (id) do update set d=excluded.d`;
+    else if(b.a==='delx')await sql`delete from ex where id=${b.id}`;
     else if(b.a==='deltx')await sql`delete from tx where id=${b.id}`;
     else if(b.a==='import'){
       if((b.p||[]).length)await sql`insert into kv values('p',${JSON.stringify(b.p)}::jsonb) on conflict (k) do update set v=excluded.v`;
